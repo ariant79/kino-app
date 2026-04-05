@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<title>KINO LIVE – Bile Jucate</title>
+<style>
+  body {
+    background: #0b0b0b;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+  }
+  h1 { margin-top: 20px; }
+
+  #userNumbersInput {
+    margin-top: 20px;
+    padding: 8px;
+    width: 300px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: none;
+    text-align: center;
+  }
+
+  #userNumbersFeedback { margin-top:10px; color:#00f; font-weight: bold; }
+
+  #numbers { margin-top: 40px; display: flex; flex-direction: column; align-items: center; }
+
+  .draw { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
+
+  .draw-time { color: #FFD700; margin-bottom: 10px; font-size: 18px; font-weight: bold; }
+
+  .balls-container { display: flex; flex-wrap: wrap; justify-content: center; }
+
+  .ball {
+    width: 60px;
+    height: 60px;
+    margin: 8px;
+    border-radius: 50%;
+    background: #e91e63;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 22px;
+    color: white;
+    transform: translateY(-200px) scale(0);
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  }
+
+  .ball.show { transform: translateY(0) scale(1); opacity: 1; }
+
+  .user-played {
+    background: #2196f3 !important;
+    color: white !important;
+    box-shadow: 0 0 20px #2196f3 !important;
+    animation: bounce 0.6s ease forwards, pulse 1s infinite alternate;
+  }
+
+  .repeated { animation: pulse 1s infinite alternate; }
+
+  @keyframes bounce {
+    0% { transform: translateY(-200px) scale(0); }
+    60% { transform: translateY(-20px) scale(1.2); }
+    80% { transform: translateY(0px) scale(1.1); }
+    100% { transform: translateY(0px) scale(1); }
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.15); }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎰 KINO LIVE – Bile Jucate</h1>
+
+<input type="text" id="userNumbersInput" placeholder="Introdu 8 numere separate prin virgulă" />
+<div id="userNumbersFeedback"></div>
+
+<div id="numbers"></div>
+
+<script>
+let lastDraw = [];
+let lastDrawsHistory = [];
+let userNumbers = new Set();
+
+// Citește valorile din textbox
+function updateUserNumbers() {
+  const input = document.getElementById('userNumbersInput').value;
+  const nums = input.split(',')
+                    .map(n => parseInt(n.trim()))
+                    .filter(n => !isNaN(n) && n >= 1 && n <= 80)
+                    .slice(0,8);
+  userNumbers = new Set(nums);
+  document.getElementById('userNumbersFeedback').innerText =
+    "Numere jucate: " + Array.from(userNumbers).join(", ");
+  console.log("Numere jucate actualizate:", Array.from(userNumbers));
+}
+
+document.getElementById('userNumbersInput').addEventListener('input', updateUserNumbers);
+
+// Preia datele de la server
+async function getData() {
+  try {
+    const res = await fetch("https://kino-app-mplj.onrender.com/kino");
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+
+    if (JSON.stringify(data.numbers) !== JSON.stringify(lastDraw) && data.numbers.length === 20) {
+      animateDraw(data);
+      lastDraw = data.numbers;
+    }
+  } catch(e) {
+    console.error("Fetch /kino failed:", e);
+  }
+}
+
+// Animare extragere
+async function animateDraw(draw) {
+  updateUserNumbers();
+
+  const container = document.getElementById("numbers");
+  const drawDiv = document.createElement("div");
+  drawDiv.className = "draw";
+
+  const timeEl = document.createElement("div");
+  timeEl.className = "draw-time";
+  timeEl.innerText = `Ora extragerii: ${draw.time}`;
+  drawDiv.appendChild(timeEl);
+
+  const ballsContainer = document.createElement("div");
+  ballsContainer.className = "balls-container";
+  drawDiv.appendChild(ballsContainer);
+
+  container.prepend(drawDiv);
+
+  // Determină bilele repetate din ultimele 3 extrageri
+  let recentCounts = {};
+  lastDrawsHistory.slice(0,3).forEach(hist => hist.forEach(n => recentCounts[n] = (recentCounts[n]||0)+1));
+
+  for (let i = 0; i < draw.numbers.length; i++) {
+    const num = draw.numbers[i];
+    const ball = document.createElement("div");
+    ball.className = "ball";
+    ball.innerText = num;
+
+    if (userNumbers.has(num)) ball.classList.add("user-played");
+    else if (recentCounts[num] >= 3) ball.classList.add("repeated");
+
+    ballsContainer.appendChild(ball);
+    await sleep(150);
+    ball.classList.add("show");
+  }
+
+  lastDrawsHistory.unshift(draw.numbers.slice());
+  if (lastDrawsHistory.length > 5) lastDrawsHistory.pop();
+
+  while (container.children.length > 5) container.removeChild(container.lastChild);
+}
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+// Fetch periodic
+setInterval(getData, 3000);
+getData();
+</script>
+
+</body>
+</html>
