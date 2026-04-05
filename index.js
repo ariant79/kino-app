@@ -14,20 +14,20 @@ let userNumbers = []; // numerele jucate de tine
 // FUNCȚIE: update extrageri live
 async function updateDraws() {
   try {
-    const res = await fetch("https://xloto.ro/arhiva-loto-grecia.php"); // fetch nativ
+    const res = await fetch("https://xloto.ro/arhiva-loto-grecia.php");
     const html = await res.text();
     const $ = load(html);
 
-    // selector pentru ultima extragere (ajustează după site)
-    const latestDrawText = $(".draw-numbers").first().text(); // ex: "02, 04, 09, 10, 13, 17, ..."
-    const numbers = latestDrawText
-      .split(",")
-      .map(n => n.trim())
-      .filter(n => n.length > 0);
+    const rows = $("table tbody tr");
+    const first = rows.first();
 
-    // verificăm dacă e nouă
+    const date = first.find("td").eq(0).text().trim();
+    const raw = first.find("td").eq(1).text().trim();
+
+    const numbers = raw.match(/.{1,2}/g) || [];
+
     if (!lastDraws.length || lastDraws[0].numbers.join() !== numbers.join()) {
-      const time = new Date().toLocaleTimeString();
+      const time = date;
       lastDraws.unshift({ time, numbers });
       if (lastDraws.length > 5) lastDraws.pop();
       console.log(`🎉 NEW DRAW at ${time}: ${numbers.join(", ")}`);
@@ -36,6 +36,7 @@ async function updateDraws() {
     console.error("Error updating draws:", err);
   }
 }
+
 
 // la start
 updateDraws();
