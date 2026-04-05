@@ -1,17 +1,30 @@
 import express from "express";
-import cors from "cors";
+import fetch from "node-fetch";
 import { load } from "cheerio";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-app.use(cors());
-app.use(express.static("."));
+app.use(express.static("public"));
+app.use(express.json());
 
-let lastDraws = [];
+let lastDraws = []; // memorăm ultimele 5 extrageri
 let userNumbers = []; // numerele jucate de tine
 
-// FUNCȚIE: update extrageri live
+// ✨ Endpoint pentru a seta numerele jucate din frontend
+app.post("/set-user-numbers", (req, res) => {
+  const nums = req.body.numbers || [];
+  userNumbers = nums.map(n => n.toString().padStart(2, "0"));
+  console.log("Numere jucate actualizate:", userNumbers);
+  res.json({ success: true });
+});
+
+// ✨ Endpoint pentru a da ultimele extrageri
+app.get("/kino", (req, res) => {
+  res.json({ lastDraws });
+});
+
+// 🔥 Funcție care face scraping și actualizează extragerile
 async function updateDraws() {
   try {
     const res = await fetch("https://xloto.ro/arhiva-loto-grecia.php");
@@ -19,53 +32,50 @@ async function updateDraws() {
     const $ = load(html);
 
     const rows = $("table tbody tr");
-    const first = rows.first();
 
-    const date = first.find("td").eq(0).text().trim();
-    const raw = first.find("td").eq(1).text().trim();
+    // găsim primul rând cu extragere reală (minim 10 cifre consecutive)
+    let firstDraw;
+    rows.each((i, el) => {
+      const text = $(el).text();
+      if (/\d{10,}/.test(text)) {
+        firstDraw = $(el);
+        return false; // break
+      }
+    });
 
-    const numbers = raw.match(/.{1,2}/g) || [];
+    if (!firstDraw) {
+      console.log("⚠️ Nu am găsit extragere validă");
+      return;
+    }
 
+    const time = firstDraw.find("td").eq(0).text().trim();
+    const raw = firstDraw.find("td").eq(1).text().trim();
+    const numbers = raw.match(/\d{2}/g) || [];
+
+    if (numbers.length !== 20) {
+      console.log("⚠️ Numere invalide:", raw);
+      return;
+    }
+
+    // verificăm dacă e extragere nouă
     if (!lastDraws.length || lastDraws[0].numbers.join() !== numbers.join()) {
-      const time = date;
       lastDraws.unshift({ time, numbers });
+
       if (lastDraws.length > 5) lastDraws.pop();
+
       console.log(`🎉 NEW DRAW at ${time}: ${numbers.join(", ")}`);
     }
+
   } catch (err) {
-    console.error("Error updating draws:", err);
+    console.error("❌ Error updating draws:", err);
   }
 }
 
-
-// la start
+// 🔁 Update imediat și la fiecare 10 secunde
 updateDraws();
+setInterval(updateDraws, 10 * 1000);
 
-// update periodic la fiecare 5 minute
-setInterval(updateDraws, 5 * 60 * 1000);
-
-// API: returnează ultimele extrageri
-app.get("/kino", (req, res) => {
-  res.json({ lastDraws, userNumbers });
-});
-
-// API: actualizare numere jucate
-app.post("/user-numbers", express.json(), (req, res) => {
-  const { numbers } = req.body;
-  if (Array.isArray(numbers)) {
-    userNumbers = numbers.map(n => String(n).trim());
-    console.log("Numere jucate actualizate:", userNumbers);
-    res.json({ success: true, userNumbers });
-  } else {
-    res.status(400).json({ success: false, message: "Array invalid" });
-  }
-});
-
-// server static index.html
-app.get("/", (req, res) => {
-  res.sendFile(process.cwd() + "/index.html");
-});
-
+// 🚀 Pornim serverul
 app.listen(PORT, () => {
   console.log(`Server running → http://localhost:${PORT}/kino`);
 });
