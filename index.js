@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
 import { load } from "cheerio";
 
 const app = express();
@@ -10,16 +9,16 @@ app.use(cors());
 app.use(express.static("."));
 
 let lastDraws = [];
-let userNumbers = []; // array cu numerele jucate de tine, se poate actualiza din frontend
+let userNumbers = []; // numerele jucate de tine
 
 // FUNCȚIE: update extrageri live
 async function updateDraws() {
   try {
-    const res = await fetch("https://xloto.ro/arhiva-loto-grecia.php");
+    const res = await fetch("https://xloto.ro/arhiva-loto-grecia.php"); // fetch nativ
     const html = await res.text();
     const $ = load(html);
 
-    // selector pentru ultima extragere (ajustează după structura site-ului)
+    // selector pentru ultima extragere (ajustează după site)
     const latestDrawText = $(".draw-numbers").first().text(); // ex: "02, 04, 09, 10, 13, 17, ..."
     const numbers = latestDrawText
       .split(",")
