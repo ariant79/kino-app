@@ -1,6 +1,5 @@
 import express from "express";
-import fetch from "node-fetch";
-import cheerio from "cheerio";
+import { load } from "cheerio"; 
 
 const app = express();
 app.use(express.json());
@@ -24,7 +23,7 @@ async function updateDraws() {
   try {
     const response = await fetch("https://xloto.ro/arhiva-loto-grecia.php");
     const html = await response.text();
-    const $ = cheerio.load(html);
+    const $ = load(html);
 
     const draws = [];
     $("table tr").each((i, el) => {
