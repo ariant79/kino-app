@@ -1,8 +1,8 @@
 // index.js
-const express = require("express");
-const axios = require("axios");
-const cheerio = require("cheerio");
-const cors = require("cors");
+import express from "express";
+import axios from "axios";
+import cheerio from "cheerio";
+import cors from "cors";
 
 const app = express();
 app.use(cors());
@@ -63,7 +63,7 @@ app.get("/", (req, res) => {
   res.sendFile(process.cwd() + "/index.html");
 });
 // Pornim serverul
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running → http://localhost:${PORT}/kino`);
 
