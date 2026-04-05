@@ -1,11 +1,18 @@
 import express from "express";
 import cors from "cors";
 import { load } from "cheerio";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Pentru __dirname în ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(process.cwd(), "public")));
+app.use(express.static(path.join(__dirname, "public")));
 
 let lastDraws = [];
 let userNumbers = [];
