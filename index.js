@@ -47,8 +47,8 @@ async function updateDraws() {
   }
 }
 
-generateDraw();
-setInterval(generateDraw, 15000);
+updateDraws();
+setInterval(updateDraws, 15000);
 
 // Endpoint API
 app.get("/kino", (req, res) => {
