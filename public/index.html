@@ -2,171 +2,227 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<title>KINO LIVE – Bile Jucate</title>
+<title>KINO LIVE TV</title>
+
 <style>
-  body {
-    background: #0b0b0b;
-    color: white;
-    font-family: Arial, sans-serif;
-    text-align: center;
+html, body {
     margin: 0;
-    padding: 0;
-  }
-  h1 { margin-top: 20px; }
+    height: 100%;
+    background: radial-gradient(circle at center, #111 0%, #000 100%);
+    font-family: Arial, sans-serif;
+    color: white;
+}
 
-  #userNumbersInput {
-    margin-top: 20px;
-    padding: 8px;
-    width: 300px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: none;
+/* TITLU */
+h1 {
     text-align: center;
-  }
+    margin: 20px 0;
+}
 
-  #userNumbersFeedback { margin-top:10px; color:#00f; font-weight: bold; }
+/* INPUT */
+#controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
 
-  #numbers { margin-top: 40px; display: flex; flex-direction: column; align-items: center; }
+#userInput {
+    width: 420px;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    font-size: 16px;
+    text-align: center;
+}
 
-  .draw { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
+/* CONTAINER */
+#main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
-  .draw-time { color: #FFD700; margin-bottom: 10px; font-size: 18px; font-weight: bold; }
+/* DRAW */
+.draw {
+    margin-bottom: 40px;
+    text-align: center;
+}
 
-  .balls-container { display: flex; flex-wrap: wrap; justify-content: center; }
+.draw-time {
+    color: #FFD700;
+    font-weight: bold;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
 
-  .ball {
-    width: 60px;
-    height: 60px;
-    margin: 8px;
+/* BILE */
+.row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.history {
+    opacity: 0.7;
+    transform: scale(0.85);
+}
+
+.draw:first-child {
+    transform: scale(1);
+}
+
+.draw:not(:first-child) {
+    transform: scale(0.85);
+    opacity: 0.7;
+}
+
+/* BALL */
+.ball {
+    width: 65px;
+    height: 65px;
     border-radius: 50%;
-    background: #e91e63;
+    background: linear-gradient(145deg, #ff2a6d, #e91e63);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 20px;
     font-weight: bold;
-    font-size: 22px;
-    color: white;
-    transform: translateY(-200px) scale(0);
+    box-shadow: 0 0 15px rgba(255,0,100,0.6);
+
+    transform: translateY(-40px) scale(0);
     opacity: 0;
-    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-  }
+    transition: all 0.4s ease;
+}
 
-  .ball.show { transform: translateY(0) scale(1); opacity: 1; }
+.ball.show {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
 
-  .user-played {
-    background: #2196f3 !important;
-    color: white !important;
-    box-shadow: 0 0 20px #2196f3 !important;
-    animation: bounce 0.6s ease forwards, pulse 1s infinite alternate;
-  }
+/* NUMERELE TALE */
+.user {
+    background: linear-gradient(145deg, #2196f3, #1e88e5) !important;
+    box-shadow: 0 0 20px rgba(33,150,243,0.9) !important;
+    animation: pulseUser 1s infinite alternate;
+}
 
-  .repeated { animation: pulse 1s infinite alternate; }
-
-  @keyframes bounce {
-    0% { transform: translateY(-200px) scale(0); }
-    60% { transform: translateY(-20px) scale(1.2); }
-    80% { transform: translateY(0px) scale(1.1); }
-    100% { transform: translateY(0px) scale(1); }
-  }
-  @keyframes pulse {
-    0% { transform: scale(1); }
-    100% { transform: scale(1.15); }
-  }
+@keyframes pulseUser {
+    from { transform: scale(1); }
+    to { transform: scale(1.2); }
+}
 </style>
 </head>
+
 <body>
 
-<h1>🎰 KINO LIVE – Bile Jucate</h1>
+<h1>🎰 KINO LIVE</h1>
 
-<input type="text" id="userNumbersInput" placeholder="Introdu 8 numere separate prin virgulă" />
-<div id="userNumbersFeedback"></div>
+<div id="controls">
+  <input id="userInput" placeholder="Introdu numerele tale (ex: 1, 5, 23, 44...)" />
+</div>
 
-<div id="numbers"></div>
+<div id="main"></div>
 
 <script>
-let lastDraw = [];
-let lastDrawsHistory = [];
+let lastKey = "";
 let userNumbers = new Set();
 
-// Citește valorile din textbox
-function updateUserNumbers() {
-  const input = document.getElementById('userNumbersInput').value;
-  const nums = input.split(',')
-                    .map(n => parseInt(n.trim()))
-                    .filter(n => !isNaN(n) && n >= 1 && n <= 80)
-                    .slice(0,8);
-  userNumbers = new Set(nums);
-  document.getElementById('userNumbersFeedback').innerText =
-    "Numere jucate: " + Array.from(userNumbers).join(", ");
-  console.log("Numere jucate actualizate:", Array.from(userNumbers));
+/* INPUT NUMERE */
+document.getElementById("userInput").addEventListener("input", () => {
+    const val = document.getElementById("userInput").value;
+
+    const nums = val.split(",")
+        .map(n => parseInt(n.trim()))
+        .filter(n => !isNaN(n) && n >= 1 && n <= 80);
+
+    userNumbers = new Set(nums.map(n => n.toString().padStart(2, "0")));
+});
+
+/* CREATE ROW */
+function createRow(numbers, isHistory=false) {
+    const row = document.createElement("div");
+    row.className = "row" + (isHistory ? " history" : "");
+
+    numbers.forEach(num => {
+        const ball = document.createElement("div");
+        ball.className = "ball";
+        ball.textContent = num;
+
+        if (userNumbers.has(num)) {
+            ball.classList.add("user");
+        }
+
+        row.appendChild(ball);
+    });
+
+    return row;
 }
 
-document.getElementById('userNumbersInput').addEventListener('input', updateUserNumbers);
+/* ANIMAȚIE */
+async function animate(row) {
+    const balls = row.querySelectorAll(".ball");
 
-// Preia datele de la server
-async function getData() {
-  try {
-    const res = await fetch("https://kino-app-mplj.onrender.com/kino");
-    if (!res.ok) throw new Error(res.status);
-    const data = await res.json();
-
-    if (JSON.stringify(data.numbers) !== JSON.stringify(lastDraw) && data.numbers.length === 20) {
-      animateDraw(data);
-      lastDraw = data.numbers;
+    for (let i = 0; i < balls.length; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        balls[i].classList.add("show");
     }
-  } catch(e) {
-    console.error("Fetch /kino failed:", e);
-  }
 }
 
-// Animare extragere
-async function animateDraw(draw) {
-  updateUserNumbers();
+/* RENDER DRAW */
+async function renderDraw(draw, isMain=false) {
+    const div = document.createElement("div");
+    div.className = "draw";
 
-  const container = document.getElementById("numbers");
-  const drawDiv = document.createElement("div");
-  drawDiv.className = "draw";
+    const time = document.createElement("div");
+    time.className = "draw-time";
+    time.textContent = draw.time;
 
-  const timeEl = document.createElement("div");
-  timeEl.className = "draw-time";
-  timeEl.innerText = `Ora extragerii: ${draw.time}`;
-  drawDiv.appendChild(timeEl);
+    const row = createRow(draw.numbers, !isMain);
 
-  const ballsContainer = document.createElement("div");
-  ballsContainer.className = "balls-container";
-  drawDiv.appendChild(ballsContainer);
+    div.appendChild(time);
+    div.appendChild(row);
 
-  container.prepend(drawDiv);
-
-  // Determină bilele repetate din ultimele 3 extrageri
-  let recentCounts = {};
-  lastDrawsHistory.slice(0,3).forEach(hist => hist.forEach(n => recentCounts[n] = (recentCounts[n]||0)+1));
-
-  for (let i = 0; i < draw.numbers.length; i++) {
-    const num = draw.numbers[i];
-    const ball = document.createElement("div");
-    ball.className = "ball";
-    ball.innerText = num;
-
-    if (userNumbers.has(num)) ball.classList.add("user-played");
-    else if (recentCounts[num] >= 3) ball.classList.add("repeated");
-
-    ballsContainer.appendChild(ball);
-    await sleep(150);
-    ball.classList.add("show");
-  }
-
-  lastDrawsHistory.unshift(draw.numbers.slice());
-  if (lastDrawsHistory.length > 5) lastDrawsHistory.pop();
-
-  while (container.children.length > 5) container.removeChild(container.lastChild);
+    return { div, row };
 }
 
-function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+/* FETCH */
+async function loadData() {
+    try {
+        const res = await fetch("/kino");
+        const data = await res.json();
 
-// Fetch periodic
-setInterval(getData, 3000);
-getData();
+        const newest = data.history[0];
+
+        // verifică dacă extragerea e deja pe ecran
+        const key = newest.time + JSON.stringify(newest.numbers);
+        if (key === lastKey) return;
+
+        lastKey = key;
+
+        const container = document.getElementById("main");
+
+        /* 🔝 creează extragerea nouă */
+        const newDraw = await renderDraw(newest, true);
+
+        // adaugă sus fără să ștergi restul
+        container.prepend(newDraw.div);
+
+        // animare doar pentru cea nouă
+        await animate(newDraw.row);
+
+        /* 🔽 limitează la 5 extrageri */
+        while (container.children.length > 5) {
+            container.removeChild(container.lastChild);
+        }
+
+    } catch (err) {
+        console.error("Fetch error:", err);
+    }
+}
+
+
+setInterval(loadData, 5000);
+loadData();
 </script>
 
 </body>

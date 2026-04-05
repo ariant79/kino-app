@@ -13,9 +13,9 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // --- Backend simulare extrageri Kino ---
+let lastDraws = [];
 let latestDrawNumbers = [];
 let latestDrawTime = "";
-let history = [];
 
 // Funcție de scraping
 async function updateDraws() {
@@ -38,15 +38,21 @@ async function updateDraws() {
     });
 
     if (extracted.length) {
-      // păstrează ultimele 5 extrageri
+      // ultimele 5 extrageri
       lastDraws = extracted.slice(0, 5);
-      console.log("✔️ Updated draws:", lastDraws[0].time, lastDraws[0].numbers.join(", "));
+
+      // 👉 AICI ERA BUGUL
+      latestDrawNumbers = lastDraws[0].numbers;
+      latestDrawTime = lastDraws[0].time;
+
+      console.log("✔️ Updated:", latestDrawTime, latestDrawNumbers.join(", "));
     }
 
   } catch (err) {
     console.error("❌ Error scraping kino:", err);
   }
 }
+
 
 updateDraws();
 setInterval(updateDraws, 15000);
@@ -55,7 +61,8 @@ setInterval(updateDraws, 15000);
 app.get("/kino", (req, res) => {
   res.json({
     numbers: latestDrawNumbers,
-    time: latestDrawTime
+    time: latestDrawTime,
+    history: lastDraws
   });
 });
 
